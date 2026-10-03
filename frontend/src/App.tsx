@@ -4,36 +4,74 @@ import Header from './components/header';
 import SummaryCard from './components/sumarioCard';
 import TicketIssuer from './components/ticketIssuer';
 import { formatTicketNumber } from './service/ticketNumero';
+import { chooseNextTicket } from './service/escolhaTicket'; //linha à ver
+import {
+  transitionTicket,
+  type TicketAction,
+} from './service/ticketTransitions';
 import type { Ticket, TicketType } from './types/ticket';
 import './App.css';
 
 function App() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [lastCalledType, setLastCalledType] = useState<TicketType | null>(null);
 
   function handleIssueTicket(tipo: TicketType) {
     const hoje = new Date();
 
     const quantidadeDoTipoHoje = tickets.filter((ticket) => {
-      const mesmaData =
-        ticket.dataEmissao.getFullYear() === hoje.getFullYear() &&
-        ticket.dataEmissao.getMonth() === hoje.getMonth() &&
-        ticket.dataEmissao.getDate() === hoje.getDate();
+      const data = ticket.dataEmissao;
 
-      return ticket.tipo === tipo && mesmaData;
+      return (
+        ticket.tipo === tipo &&
+        data.getFullYear() === hoje.getFullYear() &&
+        data.getMonth() === hoje.getMonth() &&
+        data.getDate() === hoje.getDate()
+      );
     }).length;
-
-    const sequencia = quantidadeDoTipoHoje + 1;
 
     const novoTicket: Ticket = {
       id: crypto.randomUUID(),
-      numero: formatTicketNumber(tipo, sequencia, hoje),
+      numero: formatTicketNumber(tipo, quantidadeDoTipoHoje + 1, hoje),
       tipo,
-      status: 'AGUARDANDO',
+      status: 'EMITIDA',
       dataEmissao: hoje,
     };
 
-    setTickets((ticketsAtuais) => [...ticketsAtuais, novoTicket]);
+    const ticketAguardando = transitionTicket(
+      novoTicket,
+      'COLOCAR_EM_ESPERA'
+    );
+
+    setTickets((atuais) => [...atuais, ticketAguardando]);
   }
+
+  function handleCallNext() {
+    const nextTicket = chooseNextTicket(tickets, lastCalledType);
+
+    if (!nextTicket) {
+      return;
+    }
+
+    updateTicket(nextTicket.id, 'CHAMAR');
+    setLastCalledType(nextTicket.tipo);
+  }
+
+  function updateTicket(id: string, action: TicketAction) {
+    setTickets((atuais) =>
+      atuais.map((ticket) =>
+        ticket.id === id ? transitionTicket(ticket, action) : ticket
+      )
+    );
+  }
+
+  const waitingCount = tickets.filter(
+    (ticket) => ticket.status === 'AGUARDANDO'
+  ).length;
+
+  const finishedCount = tickets.filter(
+    (ticket) => ticket.status === 'ATENDIDA'
+  ).length;
 
   return (
     <main className="app-container">
@@ -46,17 +84,22 @@ function App() {
 
       <section className="summary-grid">
         <SummaryCard title="Senhas emitidas" value={tickets.length} />
-        <SummaryCard
-          title="Aguardando"
-          value={tickets.filter((ticket) => ticket.status === 'AGUARDANDO').length}
-        />
-        <SummaryCard
-          title="Finalizadas"
-          value={tickets.filter((ticket) => ticket.status === 'ATENDIDA').length}
-        />
+        <SummaryCard title="Aguardando" value={waitingCount} />
+        <SummaryCard title="Finalizadas" value={finishedCount} />
       </section>
 
       <TicketIssuer onIssue={handleIssueTicket} />
+
+      <section className="attendant-panel">
+        <h2>Painel do atendente</h2>
+        <button
+          type="button"
+          onClick={handleCallNext}
+          disabled={waitingCount === 0}
+        >
+          Chamar próxima senha
+        </button>
+      </section>
 
       <section className="ticket-list">
         <h2>Senhas emitidas</h2>
@@ -67,9 +110,66 @@ function App() {
           <ul>
             {tickets.map((ticket) => (
               <li key={ticket.id}>
-                <strong>{ticket.numero}</strong>
-                <span>{ticket.tipo}</span>
-                <span>{ticket.status}</span>
+                <div>
+                  <strong>{ticket.numero}</strong>
+                  <span>{ticket.tipo}</span>
+                  <span>{ticket.status}</span>
+                </div>
+
+                <div className="ticket-actions">
+                  {ticket.status === 'CHAMADA' && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateTicket(ticket.id, 'CHAMAR_NOVAMENTE')
+                        }
+                      >
+                        Chamar novamente
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateTicket(ticket.id, 'INICIAR_ATENDIMENTO')
+                        }
+                      >
+                        Iniciar atendimento
+                      </button>
+                    </>
+                  )}
+
+                  {ticket.status === 'CHAMADA_NOVAMENTE' && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateTicket(ticket.id, 'INICIAR_ATENDIMENTO')
+                        }
+                      >
+                        Iniciar atendimento
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateTicket(ticket.id, 'MARCAR_NAO_COMPARECEU')
+                        }
+                      >
+                        Não compareceu
+                      </button>
+                    </>
+                  )}
+
+                  {ticket.status === 'EM_ATENDIMENTO' && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateTicket(ticket.id, 'FINALIZAR_ATENDIMENTO')
+                      }
+                    >
+                      Finalizar atendimento
+                    </button>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
