@@ -1,122 +1,82 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+
+import { useState } from 'react';
+import Header from './components/header';
+import SummaryCard from './components/sumarioCard';
+import TicketIssuer from './components/ticketIssuer';
+import { formatTicketNumber } from './service/ticketNumero';
+import type { Ticket, TicketType } from './types/ticket';
+import './App.css';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+
+  function handleIssueTicket(tipo: TicketType) {
+    const hoje = new Date();
+
+    const quantidadeDoTipoHoje = tickets.filter((ticket) => {
+      const mesmaData =
+        ticket.dataEmissao.getFullYear() === hoje.getFullYear() &&
+        ticket.dataEmissao.getMonth() === hoje.getMonth() &&
+        ticket.dataEmissao.getDate() === hoje.getDate();
+
+      return ticket.tipo === tipo && mesmaData;
+    }).length;
+
+    const sequencia = quantidadeDoTipoHoje + 1;
+
+    const novoTicket: Ticket = {
+      id: crypto.randomUUID(),
+      numero: formatTicketNumber(tipo, sequencia, hoje),
+      tipo,
+      status: 'AGUARDANDO',
+      dataEmissao: hoje,
+    };
+
+    setTickets((ticketsAtuais) => [...ticketsAtuais, novoTicket]);
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
+    <main className="app-container">
+      <Header />
+
+      <section className="welcome">
+        <h2>Painel de atendimento</h2>
+        <p>Acompanhe a situação das filas e dos atendimentos do laboratório.</p>
       </section>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
+      <section className="summary-grid">
+        <SummaryCard title="Senhas emitidas" value={tickets.length} />
+        <SummaryCard
+          title="Aguardando"
+          value={tickets.filter((ticket) => ticket.status === 'AGUARDANDO').length}
+        />
+        <SummaryCard
+          title="Finalizadas"
+          value={tickets.filter((ticket) => ticket.status === 'ATENDIDA').length}
+        />
       </section>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      <TicketIssuer onIssue={handleIssueTicket} />
+
+      <section className="ticket-list">
+        <h2>Senhas emitidas</h2>
+
+        {tickets.length === 0 ? (
+          <p>Nenhuma senha emitida ainda.</p>
+        ) : (
+          <ul>
+            {tickets.map((ticket) => (
+              <li key={ticket.id}>
+                <strong>{ticket.numero}</strong>
+                <span>{ticket.tipo}</span>
+                <span>{ticket.status}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </main>
+  );
 }
 
-export default App
+export default App;
