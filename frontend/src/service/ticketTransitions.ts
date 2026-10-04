@@ -1,4 +1,3 @@
-
 import type { Ticket, TicketStatus } from '../types/ticket';
 
 export type TicketAction =
@@ -9,10 +8,13 @@ export type TicketAction =
   | 'FINALIZAR_ATENDIMENTO'
   | 'MARCAR_NAO_COMPARECEU';
 
-const transitions: Record<TicketAction, {
-  from: TicketStatus[];
-  to: TicketStatus;
-}> = {
+const transitions: Record<
+  TicketAction,
+  {
+    from: TicketStatus[];
+    to: TicketStatus;
+  }
+> = {
   COLOCAR_EM_ESPERA: {
     from: ['EMITIDA'],
     to: 'AGUARDANDO',
@@ -41,7 +43,8 @@ const transitions: Record<TicketAction, {
 
 export function transitionTicket(
   ticket: Ticket,
-  action: TicketAction
+  action: TicketAction,
+  guiche?: string
 ): Ticket {
   const transition = transitions[action];
 
@@ -51,8 +54,13 @@ export function transitionTicket(
     );
   }
 
+  if (action === 'CHAMAR' && !guiche) {
+    throw new Error('É necessário selecionar um guichê para chamar a senha.');
+  }
+
   return {
     ...ticket,
     status: transition.to,
+    guiche: action === 'CHAMAR' ? guiche! : ticket.guiche,
   };
 }

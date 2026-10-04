@@ -2,7 +2,6 @@ import { useState } from 'react';
 import Header from './components/header';
 import SummaryCard from './components/sumarioCard';
 import TicketIssuer from './components/ticketIssuer';
-import GuicheSelector from './components/guicheselector';
 import { formatTicketNumber } from './service/ticketNumero';
 import { chooseNextTicket } from './service/escolhaTicket';
 import {
@@ -12,10 +11,12 @@ import {
 import type { Ticket, TicketType } from './types/ticket';
 import './App.css';
 
+const guiches = ['Guichê 1', 'Guichê 2'];
+
 function App() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [lastCalledType, setLastCalledType] = useState<TicketType | null>(null);
-  const [guiche, setGuiche] = useState<string | null>(null);
+  const [guicheSelecionado, setGuicheSelecionado] = useState(guiches[0]);
 
   function handleIssueTicket(tipo: TicketType) {
     const hoje = new Date();
@@ -48,8 +49,30 @@ function App() {
     setTickets((atuais) => [...atuais, ticketAguardando]);
   }
 
+  function updateTicket(
+    id: string,
+    action: TicketAction,
+    guiche?: string
+  ) {
+    setTickets((atuais) =>
+      atuais.map((ticket) =>
+        ticket.id === id
+          ? transitionTicket(ticket, action, guiche)
+          : ticket
+      )
+    );
+  }
+
   function handleCallNext() {
-    if (!guiche) {
+    const guicheOcupado = tickets.some(
+      (ticket) =>
+        ticket.guiche === guicheSelecionado &&
+        ['CHAMADA', 'CHAMADA_NOVAMENTE', 'EM_ATENDIMENTO'].includes(
+          ticket.status
+        )
+    );
+
+    if (guicheOcupado) {
       return;
     }
 
@@ -59,28 +82,8 @@ function App() {
       return;
     }
 
-    updateTicket(nextTicket.id, 'CHAMAR', guiche);
+    updateTicket(nextTicket.id, 'CHAMAR', guicheSelecionado);
     setLastCalledType(nextTicket.tipo);
-  }
-
-  function updateTicket(
-    id: string,
-    action: TicketAction,
-    guicheAtendimento?: string
-  ) {
-    setTickets((atuais) =>
-      atuais.map((ticket) => {
-        if (ticket.id !== id) {
-          return ticket;
-        }
-
-        const ticketAtualizado = transitionTicket(ticket, action);
-
-        return guicheAtendimento
-          ? { ...ticketAtualizado, guiche: guicheAtendimento }
-          : ticketAtualizado;
-      })
-    );
   }
 
   const waitingCount = tickets.filter(
@@ -91,13 +94,23 @@ function App() {
     (ticket) => ticket.status === 'ATENDIDA'
   ).length;
 
+  const guicheOcupado = tickets.some(
+    (ticket) =>
+      ticket.guiche === guicheSelecionado &&
+      ['CHAMADA', 'CHAMADA_NOVAMENTE', 'EM_ATENDIMENTO'].includes(
+        ticket.status
+      )
+  );
+
   return (
     <main className="app-container">
       <Header />
 
       <section className="welcome">
         <h2>Painel de atendimento</h2>
-        <p>Acompanhe a situação das filas e dos atendimentos do laboratório.</p>
+        <p>
+          Acompanhe a situação das filas e dos atendimentos do laboratório.
+        </p>
       </section>
 
       <section className="summary-grid">
@@ -111,23 +124,30 @@ function App() {
       <section className="attendant-panel">
         <h2>Painel do atendente</h2>
 
-        {!guiche ? (
-          <GuicheSelector onSelect={setGuiche} />
-        ) : (
-          <>
-            <p>
-              Guichê em atendimento: <strong>{guiche}</strong>
-            </p>
+        <label htmlFor="guiche">Selecionar guichê:</label>
+        <select
+          id="guiche"
+          value={guicheSelecionado}
+          onChange={(event) => setGuicheSelecionado(event.target.value)}
+        >
+          {guiches.map((guiche) => (
+            <option key={guiche} value={guiche}>
+              {guiche}
+            </option>
+          ))}
+        </select>
 
-            <button
-              type="button"
-              onClick={handleCallNext}
-              disabled={waitingCount === 0}
-            >
-              Chamar próxima senha
-            </button>
-          </>
-        )}
+        <p>
+          Situação: {guicheOcupado ? 'Em atendimento' : 'Disponível'}
+        </p>
+
+        <button
+          type="button"
+          onClick={handleCallNext}
+          disabled={waitingCount === 0 || guicheOcupado}
+        >
+          Chamar próxima senha
+        </button>
       </section>
 
       <section className="ticket-list">
@@ -143,10 +163,7 @@ function App() {
                   <strong>{ticket.numero}</strong>
                   <span>{ticket.tipo}</span>
                   <span>{ticket.status}</span>
-
-                  {ticket.guiche && (
-                    <span>Guichê: {ticket.guiche}</span>
-                  )}
+                  {ticket.guiche && <span>{ticket.guiche}</span>}
                 </div>
 
                 <div className="ticket-actions">
