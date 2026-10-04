@@ -16,4 +16,6 @@ export interface Ticket {
   tipo: TicketType;
   status: TicketStatus;
   dataEmissao: Date;
+  guiche: string | null;
 }
+

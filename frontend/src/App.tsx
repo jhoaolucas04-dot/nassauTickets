@@ -1,10 +1,10 @@
-
 import { useState } from 'react';
 import Header from './components/header';
 import SummaryCard from './components/sumarioCard';
 import TicketIssuer from './components/ticketIssuer';
+import GuicheSelector from './components/guicheselector';
 import { formatTicketNumber } from './service/ticketNumero';
-import { chooseNextTicket } from './service/escolhaTicket'; //linha à ver
+import { chooseNextTicket } from './service/escolhaTicket';
 import {
   transitionTicket,
   type TicketAction,
@@ -15,6 +15,7 @@ import './App.css';
 function App() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [lastCalledType, setLastCalledType] = useState<TicketType | null>(null);
+  const [guiche, setGuiche] = useState<string | null>(null);
 
   function handleIssueTicket(tipo: TicketType) {
     const hoje = new Date();
@@ -36,6 +37,7 @@ function App() {
       tipo,
       status: 'EMITIDA',
       dataEmissao: hoje,
+      guiche: null,
     };
 
     const ticketAguardando = transitionTicket(
@@ -47,21 +49,37 @@ function App() {
   }
 
   function handleCallNext() {
+    if (!guiche) {
+      return;
+    }
+
     const nextTicket = chooseNextTicket(tickets, lastCalledType);
 
     if (!nextTicket) {
       return;
     }
 
-    updateTicket(nextTicket.id, 'CHAMAR');
+    updateTicket(nextTicket.id, 'CHAMAR', guiche);
     setLastCalledType(nextTicket.tipo);
   }
 
-  function updateTicket(id: string, action: TicketAction) {
+  function updateTicket(
+    id: string,
+    action: TicketAction,
+    guicheAtendimento?: string
+  ) {
     setTickets((atuais) =>
-      atuais.map((ticket) =>
-        ticket.id === id ? transitionTicket(ticket, action) : ticket
-      )
+      atuais.map((ticket) => {
+        if (ticket.id !== id) {
+          return ticket;
+        }
+
+        const ticketAtualizado = transitionTicket(ticket, action);
+
+        return guicheAtendimento
+          ? { ...ticketAtualizado, guiche: guicheAtendimento }
+          : ticketAtualizado;
+      })
     );
   }
 
@@ -92,13 +110,24 @@ function App() {
 
       <section className="attendant-panel">
         <h2>Painel do atendente</h2>
-        <button
-          type="button"
-          onClick={handleCallNext}
-          disabled={waitingCount === 0}
-        >
-          Chamar próxima senha
-        </button>
+
+        {!guiche ? (
+          <GuicheSelector onSelect={setGuiche} />
+        ) : (
+          <>
+            <p>
+              Guichê em atendimento: <strong>{guiche}</strong>
+            </p>
+
+            <button
+              type="button"
+              onClick={handleCallNext}
+              disabled={waitingCount === 0}
+            >
+              Chamar próxima senha
+            </button>
+          </>
+        )}
       </section>
 
       <section className="ticket-list">
@@ -114,6 +143,10 @@ function App() {
                   <strong>{ticket.numero}</strong>
                   <span>{ticket.tipo}</span>
                   <span>{ticket.status}</span>
+
+                  {ticket.guiche && (
+                    <span>Guichê: {ticket.guiche}</span>
+                  )}
                 </div>
 
                 <div className="ticket-actions">
@@ -127,6 +160,7 @@ function App() {
                       >
                         Chamar novamente
                       </button>
+
                       <button
                         type="button"
                         onClick={() =>
@@ -148,6 +182,7 @@ function App() {
                       >
                         Iniciar atendimento
                       </button>
+
                       <button
                         type="button"
                         onClick={() =>
