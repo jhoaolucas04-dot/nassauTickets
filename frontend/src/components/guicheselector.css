@@ -1,0 +1,45 @@
+.guiche-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+.guiche-selector h2,
+.guiche-selector p {
+  margin: 0;
+}
+
+.guiche-selector p {
+  color: #6b7280;
+}
+
+.guiche-selector label {
+  font-weight: 600;
+}
+
+.guiche-selector input {
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.guiche-selector button {
+  padding: 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #2563eb;
+  color: white;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.guiche-selector button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
