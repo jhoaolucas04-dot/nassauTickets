@@ -18,6 +18,12 @@ Facilitar a organização do fluxo de atendimento, respeitando as prioridades da
 * CSS
 * Git e GitHub
 
+## Interface e experiência de uso
+
+A interface foi organizada por perfil de utilização, com prioridade para o autoatendimento do cliente. O totem apresenta três opções grandes e explicativas, confirma a senha emitida e orienta o cliente a acompanhar o painel. O painel destaca a chamada mais recente e mantém as quatro chamadas anteriores visíveis. A área interna separa as tarefas do atendente e do gestor.
+
+O layout é responsivo para computadores, tablets e celulares, possui estados visuais para conexão e expediente, foco de teclado visível, formulários com rótulos e mensagens de orientação. A emissão no totem é anônima e não solicita dados pessoais.
+
 ## Funcionalidades
 
 * Emissão de senhas prioritárias (SP), gerais (SG) e para retirada de exames (SE).
@@ -29,18 +35,36 @@ Facilitar a organização do fluxo de atendimento, respeitando as prioridades da
 
 ## Instalação e execução
 
+Requer Node.js 22.13+ (preferencialmente 22.16 ou superior compatível com Vite) e npm.
+
+Terminal 1:
 ```bash
-git clone https://github.com/jhoaolucas04-dot/nassauTickets
-cd nassauTickets/frontend
-npm install
+cd backend
+npm start
+```
+Terminal 2:
+```bash
+cd frontend
+npm ci
 npm run dev
 ```
+Abra http://localhost:5173. O totem e o painel são públicos. Para testar fora do expediente, inicie o backend com `DEMO_MODE=1 npm start` (PowerShell: `$env:DEMO_MODE="1"; npm start`). Não utilize esse modo em produção.
 
-Acesse no navegador o endereço local exibido pelo Vite.
+Credenciais iniciais exclusivamente para demonstração: `gestor` / `Gestor123!` e `atendente` / `Atende123!`. Defina `ADMIN_PASSWORD` e `STAFF_PASSWORD` antes da primeira execução em ambientes reais. O gestor pode cadastrar atendentes e guichês e consultar relatórios. Ative o áudio no painel com o botão correspondente.
+
+## Arquitetura e decisões
+
+React/TypeScript/Vite mantidos do projeto original, conforme o Markdown da atividade. Interface web responsiva, não React Native. API REST em Node.js 22 com módulo HTTP nativo e SQLite integrado, alternativa ao Express/MySQL para facilitar execução local sem serviços externos. O servidor é a fonte de verdade; a interface consulta a cada 1,5 segundo. Transações SQLite serializam emissão e chamadas. Dados persistem em `backend/tickets.sqlite`; sessões ficam em memória e expiram com reinício do servidor. O horário usa America/Recife.
+
+O ciclo adotado é SP, SE, SP, SG, pulando filas vazias, conforme o diagrama. O tempo médio usa duração real. Os 5% de ausências representam referência histórica, não descarte aleatório de pacientes reais; o documento de simulação descreve como testar esse cenário.
+
+## Testes
+
+`cd backend && npm test` executa testes de prioridade e integração HTTP. `cd frontend && npm run build` verifica TypeScript e gera a aplicação. Consulte `docs/requirements/testes.md` para validações manuais e limitações.
 
 ## Estrutura do projeto
 
-* `backend/`: destinado ao servidor da aplicação.
+* `backend/`: API e persistência SQLite.
 * `frontend/`: código da interface React.
 * `docs/`: documentação, requisitos, modelos e protótipos.
 

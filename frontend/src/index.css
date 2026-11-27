@@ -1,19 +1,6 @@
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  font-family: Arial, sans-serif;
-  background: #f2f5f9;
-  color: #1c2738;
-}
-
-button,
-input,
-select {
-  font: inherit;
-}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+button, input, select { font: inherit; }
+button:disabled { cursor: not-allowed; }
+::selection { background: #cfe1f1; color: #123b65; }
